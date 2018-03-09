@@ -49,18 +49,39 @@ class GaussLaguerreModeSet:
     def resizeModeSet(self, p, l):
         """Resize the array of mode coefficients"""
         # Don't have to do anything clever with p indices
-        self._coeffs.resize(p, self._maxL)
+        self._coeffs.resize(p, self._maxL*2+1)
         self._maxP = p
         
         # Have to be clever with l indices to get correct array shape
-        self._coeffs.resize(self._maxP, l)
         if l > self._maxL:
-            self._coeffs.resize(self._maxP, l)
-            self._coeffs[:, -self._maxL:-1] = self._coeffs[:, self._maxL+1:-l-self._maxL]
-            self._coeffs[:, -l:-self._maxL] = complex(0.0)
+            # adding 2*(l-maxL) columns in middle of array
+            # first column to add becomes maxL+1
+            # last column added becomes l*2+1 - (maxL+1) = l*2-maxL
+            # first column to move to end is maxL+1
+            # last column to move to end is 2*maxL+1
+            fstColSrc = self._maxL+1
+            lstColSrc = 2*self._maxL+1
+            fstColDest = 2*l - self._maxL + 1
+            lstColDest = 2*l
+            newCoeffs = np.zeros((self._maxP, l*2+1), dtype=complex)
+            newCoeffs[:, :fstColSrc] = self._coeffs[:, :fstColSrc]
+            newCoeffs[:, fstColDest:] = self._coeffs[:, fstColSrc:lstColSrc]
+            self._coeffs = newCoeffs
         if l < self._maxL:
-            self._coeffs[:, l+1:-(self._maxL-l)] = self._coeffs[:, -l:-1]
-            self._coeffs.resize(self._maxP, l)
+            # adding 2*(l-maxL) columns in middle of array
+            # first column to move is 2*maxL+1-l
+            # last column to move is  2*maxL+1
+            # first column to move moves to l+1
+            # last column to move moves to 2*l+1
+            
+            fstColSrc = 2*self._maxL+1-l
+            lstColSrc = 2*self._maxL+1
+            fstColDest = l+1
+            lstColDest = 2*l+1
+            newCoeffs = np.zeros((self._maxP, l*2+1), dtype=complex)
+            newCoeffs[:, :l+2] = self._coeffs[:, :l+2]
+            newCoeffs[:, fstColDest:] = self._coeffs[:, fstColSrc:lstColSrc]
+            self._coeffs = newCoeffs
         self._maxL = l
         
     

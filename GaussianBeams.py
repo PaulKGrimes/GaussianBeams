@@ -8,10 +8,12 @@
 #
 # Functions implementing the calculations are in GaussianLaguerreModes.py
 
-from GaussianLaguerreModes import *
+import GaussianLaguerreModes as Glm
+import ModifiedGaussianLaguerreModes as modGlm
 
-class GaussLaguerreModeSet:
-    """A set of Gauss-Laguerre modes with complex coefficients"""
+class GaussLaguerreModeBase(object):
+    """The base class of the GLM and modified GLM classes.  This base class implements the common parameters and
+    handles the storage and manipulation of the mode coefficients"""
     def __init__(self, k=1., w0=1., maxP = 0, maxL = 0):
         # Create a complex array holding the mode coefficients of the G-L modes
         # Indexing runs from p=0 to p=maxP in the first dimension and
@@ -106,3 +108,37 @@ class GaussLaguerreModeSet:
         """Set a new value for maxL"""
         # resize the self._coeffs array
         self.resizeModeSet(self._p, l)
+
+        
+class GaussLaguerreModeSet(GaussLaguerreModeBase):
+    """A class holding a set of Gauss-Laguerre modes, defined in the paraxial limit."""
+    def __init__(self, k=1., w0=1., maxP = 0, maxL = 0):
+        super(GaussLaguerreModeSet, self).__init__(k, w0, maxP, maxL)
+        
+    def field(self, rho, phi, z, p=None, l=None):
+        """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
+        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        pass
+        
+    def farField(self, theta, phi, p=None, l=None):
+        """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,
+        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        pass
+        
+
+
+class ModifiedGaussLaguerreModeSet(GaussLaguerreModeBase):
+    """A class holding a set of modified Gauss-Laguerre modes, using the definition Tuovinen (1992)"""
+    def __init__(self, k=1., w0=1., maxP = 0, maxL = 0):
+        super(GaussLaguerreModeSet, self).__init__(k, w0, maxP, maxL)
+        
+    def field(self, rho, phi, z, p=None, l=None):
+        """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
+        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        pass
+        
+    def farField(self, theta, phi, p=None, l=None):
+        """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,
+        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        pass
+        

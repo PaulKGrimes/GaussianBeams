@@ -37,8 +37,6 @@ class ModGaussLaguerreMode:
         self.w0 = w0
         self.p = p
         self.l = l
-        
-
 
     def b(kk, w0):
         """return the value of b"""

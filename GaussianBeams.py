@@ -118,12 +118,46 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
     def field(self, rho, phi, z, p=None, l=None):
         """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
         for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
-        pass
+        if p!=None and l!=None:
+            # We are after a specific mode
+            return self_coeffs[p,l]* GLM.Glm(rho, phi, z, self.k, self.w0, p=p, l=l)
+        elif p!=None and l==None:
+            # We are after the sum of all azimuthal modes in an axial mode
+            result = np.zeros_like(np.meshgrid(rho, phi, z), dtype=np.complex)
+            for l in range(-self.maxL, self.maxL+1):
+                result += self.field(rho, phi, z, p=p, l=l)
+            return result
+        elif p==None and l == None:
+            # We are after the sum of all modes.
+            result = np.zeros_like(np.meshgrid(rho, phi, z), dtype=np.complex)
+            for p in range(0, self.maxP+1):
+                result += self.field(rho, phi, z, p=p, l=None)
+            return result
+        else:
+            # Shouldn't get here
+            raise ValueError, "GaussLaguerreModeSet.field: must set mode index p if mode index l is set"
         
     def farField(self, theta, phi, p=None, l=None):
         """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,
         for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
-        pass
+                if p!=None and l!=None:
+            # We are after a specific mode
+            return self_coeffs[p,l]* GLM.Glm_ff(theta, phi, self.k, self.w0, p=p, l=l)
+        elif p!=None and l==None:
+            # We are after the sum of all azimuthal modes in an axial mode
+            result = np.zeros_like(np.meshgrid(theta, phi), dtype=np.complex)
+            for l in range(-self.maxL, self.maxL+1):
+                result += self.field(theta, phi, p=p, l=l)
+            return result
+        elif p==None and l == None:
+            # We are after the sum of all modes.
+            result = np.zeros_like(np.meshgrid(theta, phi), dtype=np.complex)
+            for p in range(0, self.maxP+1):
+                result += self.field(theta, phi, p=p, l=None)
+            return result
+        else:
+            # Shouldn't get here
+            raise ValueError, "GaussLaguerreModeSet.farField: must set mode index p if mode index l is set"
         
 
 
@@ -135,10 +169,44 @@ class ModifiedGaussLaguerreModeSet(GaussLaguerreModeBase):
     def field(self, rho, phi, z, p=None, l=None):
         """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
         for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
-        pass
+        if p!=None and l!=None:
+            # We are after a specific mode
+            return self_coeffs[p,l]* modGLM.Glm(rho, phi, z, self.k, self.w0, p=p, l=l)
+        elif p!=None and l==None:
+            # We are after the sum of all azimuthal modes in an axial mode
+            result = np.zeros_like(np.meshgrid(rho, phi, z), dtype=np.complex)
+            for l in range(-self.maxL, self.maxL+1):
+                result += self.field(rho, phi, z, p=p, l=l)
+            return result
+        elif p==None and l == None:
+            # We are after the sum of all modes.
+            result = np.zeros_like(np.meshgrid(rho, phi, z), dtype=np.complex)
+            for p in range(0, self.maxP+1):
+                result += self.field(rho, phi, z, p=p, l=None)
+            return result
+        else:
+            # Shouldn't get here
+            raise ValueError, "ModifiedGaussLaguerreModeSet.field: must set mode index p if mode index l is set"
         
     def farField(self, theta, phi, p=None, l=None):
         """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,
         for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
-        pass
+                if p!=None and l!=None:
+            # We are after a specific mode
+            return self_coeffs[p,l]* modGLM.Glm_ff(theta, phi, self.k, self.w0, p=p, l=l)
+        elif p!=None and l==None:
+            # We are after the sum of all azimuthal modes in an axial mode
+            result = np.zeros_like(np.meshgrid(theta, phi), dtype=np.complex)
+            for l in range(-self.maxL, self.maxL+1):
+                result += self.field(theta, phi, p=p, l=l)
+            return result
+        elif p==None and l == None:
+            # We are after the sum of all modes.
+            result = np.zeros_like(np.meshgrid(theta, phi), dtype=np.complex)
+            for p in range(0, self.maxP+1):
+                result += self.field(theta, phi, p=p, l=None)
+            return result
+        else:
+            # Shouldn't get here
+            raise ValueError, "ModifiedGaussLaguerreModeSet.farField: must set mode index p if mode index l is set"
         

@@ -7,8 +7,7 @@
     def Aint(d, u, w, p=0, l=0):
         """Return the integrand of the expression for the generalized Gaussian-Laguerre mode coefficient of order n, alpha,
         given normalized data d, normalized radial distance u and beam waist W"""
-        u2overw2 = u**2 / w**2
-        return d*sp.special.eval_genlaguerre(p, l, 2*u2overw2)*np.exp(-u2overw2)*u
+        return d*Lpl(u, w, p, l)*u
 
     def Apl(d, u, w, p=0, l=0):
         """Return the mode coefficient of the pth radial and lth azimuthal Gaussian-Laguerre mode in d, using a beamwidth w"""
@@ -19,16 +18,16 @@
         u2overw2 = u**2 / w**2
         return sp.special.eval_genlaguerre(p, l, 2*u2overw2)*np.exp(-u2overw2)
 
-    def Epl(apl, u, w, p=0, l=0):
+    def Epl(u, apl, w, p=0, l=0):
         """Return the value at u of the pth radial and lth azimuthal Gaussian-Laguerre mode with a beamwidth w"""
         return apl*Lpl(u, w, p, l)
 
     def etapl(d, u, apl, w, p=0, l=0):
         """Return the fractional power contained in the pth radial and lth azimuthal Gaussian-Laguerre mode in d, using a beamwidth w"""
-        etaTop = sp.integrate.simps((Epl(apl, u, w, p, l)**2)*2*np.pi*u, u)
+        etaTop = sp.integrate.simps((Epl(u, apl, w,, p, l)**2)*2*np.pi*u, u)
         etaBot = sp.integrate.simps((d**2)*2*np.pi*u, u)
         return etaTop/etaBot
-        
+
 
 class ModGaussLaguerreMode:
     """A modified Gauss-Laguerre mode, as defined in Tuovinen 1992"""
@@ -54,7 +53,7 @@ class ModGaussLaguerreMode:
     def F(rho, z, bb):
         r = R(z, bb)
         return np.sqrt(1+(rho/r)**2)
-        
+
     def alpha(rho, ww, FF):
         return np.sqrt(2)*rho/(ww*FF)
 
@@ -78,9 +77,9 @@ class ModGaussLaguerreMode:
         aa = alpha(rho, ww, FF)
         RR = R(z, bb)
         PP = Phi0(z, bb)
-        
+
         return -((aa**2)/2 - j*k*RR*(FF-1) - j*k*z + j*(2*p + abs(l) + 1)*PP + j*l*phi)
-        
+
 
     def exponent_ff(theta, phi, a, p=0, l=0):
         """return the exponent of e in Glm_ff mode"""
@@ -97,9 +96,9 @@ class ModGaussLaguerreMode:
         FF = F(rho, z, b)
         aa = alpha(rho, ww, FF)
         cosTh = 1.0/FF
-        
+
         return Cpl(p, l) * (1+cosTh)/2 * 1/(k*ww*FF) * aa**abs(l) * Lpl(aa**2)**abs(l) * np.exp(exponent(rho, z, ph, k, w0, p, 1))
-        
+
     def Glm_ff(theta, phi, k, w0, p=0, l=0):
         """return the Farfield value of the modified G-L mode"""
         a = alpha_ff(theta, k, w0)

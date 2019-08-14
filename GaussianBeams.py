@@ -124,7 +124,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
     def field(self, rho, phi, z, p=None, l=None):
         """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
-        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        for a specified axial mode(s) p (sum over azimuthal modes), or for a specific (p, l) mode."""
         rhoGrid, phiGrid, zGrid = np.meshgrid(rho, phi, z)
         if p!=None and l!=None:
             # We are after a specific mode
@@ -168,7 +168,47 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             # Shouldn't get here
             raise ValueError, "GaussLaguerreModeSet.farField: must set mode index p if mode index l is set"
 
+    def overlapIntegral(self, field, theta, phi, z, p=None, l=None):
+        """Return the overlap integral between this mode set (or p, l, subset) and the given field.
 
+        Parameters:
+            field: numpy array containing the complex valued field.  If theta, phi and z are given as 1d arrays, the first axis of
+                <field> is assumed to be theta, then phi, then z.  If single values are given for theta or phi, then we assum
+            theta: numpy array or float containing the theta points in <field>, either as a single float, 1d array or an array in
+                the same shape as <field>.
+            phi: numpy array or float containing the phi points in <field>, either as a single float, 1d array or an array in the
+                same shape as <field>.
+            z: numpy array or float containing the z points in <field>, either as a single float, 1d array or an array in the
+                same shape as <field>.
+            p=None: integer or list of integers specifying the axial modes to include. If none, sum over all p in mode set.
+            l=None: integer or list of integers specifying the azimuthal modes to include. If non, sum over all l in mode set.
+
+        Returns:
+            complex result of overlap integral between field and this mode set"""
+        # Convert single values to numpy arrays for consistency
+        if type(theta) = builtIns.float:
+            theta = np.array(theta)
+        if type(phi) = builtIns.float:
+            phi = np.array(phi)
+        if type(z) = builtIns.float:
+            z = np.array(z)
+
+        # get dimensionality of field
+        dim = len(field.shape)
+        if dim == 1:
+            if len(theta) > 1:
+                # field is over theta
+            elif len(phi) > 1:
+                # field is over phi
+            elif len(z) > 1:
+                # field is over z.  Which is just weird.
+        if dim == 2:
+            if len(theta) == 1:
+                # field is over phi and z
+            elif len(phi) == 1:
+                # field is over theta and z
+            elif len(z) == 1:
+                # field is over theta and phi 
 
 class ModifiedGaussLaguerreModeSet(GaussLaguerreModeBase):
     """A class holding a set of modified Gauss-Laguerre modes, using the definition Tuovinen (1992)"""

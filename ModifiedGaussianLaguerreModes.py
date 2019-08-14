@@ -68,11 +68,16 @@ def exponent(rho, phi, z, w0, kk, p=0, l=0):
     bb = b(w0, kk)
     ww = w(z, w0, bb)
     FF = F(rho, z, bb)
+    CosTh = 1.0/FF
     aa = alpha(rho, ww, FF)
     RR = R(z, bb)
     PP = Phi0(z, bb)
 
-    return -(aa**2)/2 -j*kk*RR*(FF-1) -j*kk*z +j*(2*p + abs(l) + 1)*PP +j*l*phi
+    ## Version from Sorenson
+    #return -(aa**2)/2 -j*kk*RR*(FF-1) -j*kk*z +j*(2*p + abs(l) + 1)*PP +j*l*phi
+    
+    ## Version from Tuovinen/Friberg
+    return -(rho*CosTh/ww)**2 + j*(-(2*p+abs(l)+1)*np.pi/2 + Phi0(z, bb) + kk*z + kk*RR*(FF-1) + l*phi)
 
 def exponent_ff(theta, phi, a, p=0, l=0):
     """return the farfield exponent of e in Glm_ff mode"""
@@ -86,9 +91,13 @@ def Glm(rho, phi, z, w0, kk, p=0, l=0):
     ww = w(z, w0, bb)
     FF = F(rho, z, bb)
     aa = alpha(rho, ww, FF)
-    cosTh = 1.0/FF
+    CosTh = 1.0/FF
 
-    return Cpl(p, l) * (1+cosTh)/2 * 1/(kk*ww*FF) * aa**abs(l) * Lpl(aa**2, p, l) * np.exp(exponent(rho, phi, z, w0, kk, p, l))
+    ## Version from Sorenson
+    #return Cpl(p, l) * (1+cosTh)/2 * 1/(kk*ww*FF) * aa**abs(l) * Lpl(aa**2, p, l) * np.exp(exponent(rho, phi, z, w0, kk, p, l))
+    
+    # Version from Friberg/Tuovinen
+    return w0/ww * CosTh**2 * Lpl(2*rho**2*CosTh**2/ww**2, p, l) * np.exp(exponent(rho, phi, z, w0, kk, p, l))
 
 def Glm_ff(theta, phi, w0, kk, p=0, l=0):
     """return the Farfield value of the modified G-L mode"""

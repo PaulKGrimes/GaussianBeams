@@ -77,7 +77,7 @@ def exponent(rho, phi, z, w0, kk, p=0, l=0):
 def exponent_ff(theta, phi, a, p=0, l=0):
     """return the farfield exponent of e in Glm_ff mode"""
     theta_d = theta+np.pi*1e-16
-    exp = -(a**2)/2 +sign(theta_d)*j*(2*p + abs(l) + 1)*np.pi/2 +j*l*phi
+    exp = -(a**2)/2 + sign(theta_d)*j*(2*p + abs(l) + 1)*np.pi/2 +j*l*phi
     return exp
 
 def Glm(rho, phi, z, kk, w0, p=0, l=0):

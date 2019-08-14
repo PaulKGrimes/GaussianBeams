@@ -16,7 +16,13 @@ import ModifiedGaussianLaguerreModes as modGlm
 
 class GaussLaguerreModeBase(object):
     """The base class of the GLM and modified GLM classes.  This base class implements the common parameters and
-    handles the storage and manipulation of the mode coefficients"""
+    handles the storage and manipulation of the mode coefficients.
+
+    Attributes:
+        k: wavenumber of beam.
+        w0: beam waist diameter of beam.
+        maxP: number of axial modes in beam set.
+        maxL: number of azimuthal modes in beam set."""
     def __init__(self, w0=1., k=1., maxP = 0, maxL = 0):
         # Create a complex array holding the mode coefficients of the G-L modes
         # Indexing runs from p=0 to p=maxP in the first dimension and
@@ -167,6 +173,46 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         else:
             # Shouldn't get here
             raise ValueError, "GaussLaguerreModeSet.farField: must set mode index p if mode index l is set"
+
+    def decompose(self, data, rho, phi, w=None, R=None, fix_w=True, fix_R=False):
+        """Calculate the mode coefficients and Gaussian beam parameters that best represent the
+        field in <data>, and fill self._coeffs. Solves for w, R and hence z and w0 that maximizes
+        power in fundamental mode unless w and/or R are fixed.
+
+        Arguments:
+            data: numpy array containing complex data to be fitted.
+            rho: numpy array containing rho values of points in data.
+            phi: numpy array containing phi values of points in data.
+            w: float giving initial value for Gaussian beam waist w.
+            R: float giving initial value for Gaussian beam radius of phase curvature R.
+            fix_w: boolean that fixes value for w, so that it is not solved for.
+            fix_R: boolean that fixes value for R, so that it is not solved for.
+
+        Returns:
+            tuple containing w and R
+        """
+        if w is None:
+            # We should find the rho point where data amplitude is down by 1/e - we are
+            # assuming that the field is roughly the fundamental Gaussian
+            # But in the meantime, we'll just assume that the field is across a horn aperture
+            w = 0.6435*np.amax(rho)
+        if R is None:
+            # Assume R is ten times the w value - this won't be too far off if the field
+            # is from a horn aperture.
+            R = 10*w
+
+        # Normalize data
+        self._normalization = np.amax(np.abs(data))
+        data = data/self._normalization
+
+        if not fix_W:
+
+
+        for p in range(self.maxP+1):
+            for l in range(-self.maxL, self.maxL+1):
+                self._coeffs[p][l] = Glm.nb_Apl(data, rho, phi, w, p, l)
+
+        return w, R
 
 
 

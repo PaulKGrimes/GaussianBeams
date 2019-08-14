@@ -94,3 +94,28 @@ def Glm_ff(theta, phi, kk, w0, p=0, l=0):
     """return the Farfield value of the modified G-L mode"""
     aa = alpha_ff(theta, kk, w0)
     return Cpl(p, l) * (1+np.abs(np.cos(theta)))/4 * kk*w0 * aa**abs(l) * Lpl(aa**2, p, l) * np.exp(exponent_ff(theta, phi, aa, p, l))
+
+# Following functions taken from CHAMP Horn Analysis iPython notebook
+def nb_Aint(d, r, w, p=0, l=0):
+    """Return the integrand of the expression for the generalized Gaussian-Laguerre mode coefficient of order n, alpha,
+    given normalized data d, radial distance r and beam waist w"""
+    return d*nb_Lpl(r, w, p, l)*np.abs(r)
+
+def nb_Apl(d, r, w, p=0, l=0):
+    """Return the mode coefficient of the pth radial and lth azimuthal Gaussian-Laguerre mode in d, using a beamwidth w"""
+    return (4/(w)**2)*simps(nb_Aint(d, r, w, p, l), r)
+
+def nb_Lpl(r, w, p=0, l=0):
+    """Return the normalized value at r of the pth radial and lth azimuthal Gaussian-Laguerre mode with a beamwidth w"""
+    r2overw2 = r**2 / w**2
+    return sp.special.eval_genlaguerre(p, l, 2*r2overw2)*np.exp(-r2overw2)
+
+def nb_Epl(apl, r, w, p=0, l=0):
+    """Return the value at r of the pth radial and lth azimuthal Gaussian-Laguerre mode with a beamwidth w"""
+    return apl*nb_Lpl(r, w, p, l)/2
+
+def nb_etapl(d, r, apl, w, p=0, l=0):
+    """Return the fractional power contained in the pth radial and lth azimuthal Gaussian-Laguerre mode in d, using a beamwidth w"""
+    etaTop = simps((nb_Epl(apl, r, w, p, l)**2)*2*np.pi*np.abs(r), r)
+    etaBot = simps((d**2)*2*np.pi*np.abs(r), r)
+    return etaTop/etaBot

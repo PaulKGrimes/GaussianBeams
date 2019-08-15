@@ -8,10 +8,12 @@
 # Both traditional paraxial G-L modes and the modified G-L modes due to Tuovinen and Friberg are available
 #
 import numpy as np
+import scipy as sp
 
 from scipy.constants import c
 from scipy.special import jn, jn_zeros
-from math import factorial
+from scipy.misc import factorial
+
 
 j = 1j
 
@@ -34,12 +36,13 @@ def Epl(rho, phi, k, w, R, p=0, l=0):
 
     lm = 2*np.pi/k
     z = z_from_wR(w, R, lm)
+    w0 = w0_from_wR(w, R, lm)
     phi0 = phi0_from_w0z(w0, z, lm)
 
-    phase_exponent = - j*k*z - j*np.pi*rho**2/(lm*R**2) + j*(2*p+l+1)*phi0
+    phase_exponent = - j*k*z - j*np.pi*rho**2/(lm*R**2) + j*(2*p+np.abs(l)+1)*phi0
     phi_exponent = j*l*phi
 
-    amp = Epl_amp(rho, phi, k, w, R, p=0, l=0)
+    amp = Epl_amp(rho, phi, k, w, R, p, l)
 
     return amp*np.exp(phase_exponent)*np.exp(phi_exponent)
 
@@ -50,7 +53,6 @@ def Epl_amp(rho, phi, k, w, R, p=0, l=0):
 
     Arguments:
         rho: radial distance - numpy array or float.
-        phi: azimuthal angle - numpy array or float.
         k:   wavenumber of beam - float.
         w:   beam radius - float.
         R:   radius of phase curvature - float.
@@ -63,11 +65,11 @@ def Epl_amp(rho, phi, k, w, R, p=0, l=0):
 
     lm = 2*np.pi/k
     z = z_from_wR(w, R, lm)
-    phi0 = phi0_from_w0z(w0, z, lm)
+    w0 = w0_from_wR(w, R, lm)
 
     amp_exponent = -rho**2/w**2
 
-    Spl = Sr(rho, w, p, m)
+    Spl = Sr(rho, w, p, l)
 
     nrm = norm(w, p, l)
 
@@ -75,9 +77,9 @@ def Epl_amp(rho, phi, k, w, R, p=0, l=0):
 
 def make_grids(rho, phi):
     """Convert rho and phi into meshgrids."""
-    if type(rho) is float:
+    if type(rho) is float or type(rho) is int:
         rho = np.array([rho])
-    if type(phi) is float:
+    if type(phi) is float or type(phi) is int:
         phi = np.array([phi])
 
     if len(rho.shape) == 1 and len(phi.shape) == 1:
@@ -96,7 +98,7 @@ def norm(w, p=0, l=0):
     Returns:
         normalization constant - float.
         """
-    return np.sqrt(2/(np.pi) * np.factorial(p)/np.factorial(p_m)) / w
+    return np.sqrt(2/(np.pi) * factorial(p)/factorial(p - np.abs(l))) / w
 
 
 def Lpl(x, p=0, l=0):
@@ -109,7 +111,7 @@ def Lpl(x, p=0, l=0):
 
     Returns:
         float or numpy array (according to type of rho) containing the function value."""
-    return sp.special.eval_genlaguerre(p, abs(l), x)
+    return sp.special.eval_genlaguerre(p, np.abs(l), x)
 
 def Sr(rho, w, p=0, l=0):
     """Calculate the radial function of the p, l, G-L mode.
@@ -123,7 +125,7 @@ def Sr(rho, w, p=0, l=0):
     Returns:
         float or numpy array (according to type of rho) containing the radial
         distribution."""
-    return (np.sqrt(2*rho)/w)**m * Lpl(2*rho**2 / w**2, p, l)
+    return (np.sqrt(2*rho)/w)**np.abs(l) * Lpl(2*rho**2 / w**2, p, l)
 
 def phi0_from_w0z(w0, z ,lm):
     """Calculate the beam phase slippage from beam waist radius, axial distance,
@@ -209,7 +211,7 @@ def w0_from_zw(z, w, lm):
     if w02 < 0:
         w02 = w**2/2 * (1 - np.sqrt(1-(2*lm*z/(np.pi*w**2))**2))
 
-    return np.sqrt(w0)
+    return np.sqrt(w02)
 
 def z_from_w0w(w0, w, lm):
     """Calculate the distance along beam from beam waist radius, beam radius
@@ -240,7 +242,7 @@ def z_from_w0R(w0, R, lm):
     Returns:
         z: axial distance along beam in same units as input - float.
     """
-    z = R/2 * (1 + np.sqrt(1 - (2*np.pi*w0**2/(lm*R))**2))
+    z = R/2 * (1 - np.sqrt(1 - ((2*np.pi*w0**2)/(lm*R))**2))
     return z
 
 def w0_from_wR(w, R, lm):
@@ -255,9 +257,9 @@ def w0_from_wR(w, R, lm):
 
     Returns:
         w0: beam waist radius in same units as input - float.
-        """
-        w0 = w / np.sqrt(1 + ((np.pi*w**2)/(lm*R))**2)
-        return w0
+    """
+    w0 = w / np.sqrt(1 + ((np.pi*w**2)/(lm*R))**2)
+    return w0
 
 def z_from_wR(w, R, lm):
     """Calculate the axial distance from beam radius, radius of phase curvature

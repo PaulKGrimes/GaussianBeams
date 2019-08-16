@@ -11,6 +11,8 @@
 import numpy as np
 import scipy as sp
 
+from scipy.integrate import simps
+
 import GaussianLaguerreModes as glm
 import ModifiedGaussianLaguerreModes as modGlm
 
@@ -252,7 +254,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             if maxL > p:
                 maxL = p
             for l in range(-maxL, maxL+1):
-                self.coeffs[p, l] = self.overlapIntegral(data, rho, phi, p, l)
+                self.coeffs[p, l] = 2/(np.pi*self.w**2)*self.overlapIntegral(data, rho, phi, p, l)
 
         # Normalize coefficients to give correct on axis value
         # get coordinates of zero rho and phi
@@ -266,7 +268,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         # Return residuals
         return data - self.field(rho, phi)
 
-    def overlapIntegral(data, rho, phi, p=0, l=0):
+    def overlapIntegral(self, data, rho, phi, p=0, l=0):
         """Calculate the overlap integral between data and the p, l mode.
 
         Arguments:
@@ -277,6 +279,99 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             complex value of the overlap integral between data and p, l mode.
         """
         return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
+
+    def powerIntegral(self, rho, phi, p=None, l=None):
+        """Calculate the integrated power in the field; either for the sum of
+        all modes (p, l) = None, for a specified axial mode p (sum over
+        azimuthal modes), or for a specific (p, l) mode.
+
+        Arguments:
+            rho: numpy array of the rho values.
+            phi: numpy array of the phi values.
+            p=None: axial mode number - integer.
+            l=None: azimuth mode number - integer.
+        Returns:
+            Power in the field - float.
+        """
+        field = self.field(rho, phi, p, l)
+        integrand = field*np.conj(field)*np.abs(rho)
+
+        power = simps(simps(integrand, phi, axis=0, even="avg"), rho, even="first")
+        norm = simps(simps(np.ones_like(integrand)*np.abs(rho), phi, axis=0, even="avg"), rho, even="first")
+
+        return power/norm
+
+    def eta_pl(self, rho, phi, p=0, l=0):
+        """Calculate the fraction of integrated power in the field present in
+        mode p, l.
+
+        Arguments:
+            rho: numpy array of the rho values.
+            phi: numpy array of the phi values.
+            p=0: axial mode number - integer.
+            l=0: azimuth mode number - integer.
+        Returns:
+            Power in the field - float.
+        """
+        return np.abs(self.powerIntegral(rho, phi, p, l)/self.powerIntegral(rho, phi))
+
+    def fit_func(self, data, rho, phi, w, R):
+        """Return a function that represents the negative of the fractional
+        power in the p=0,l=0 mode, when fitted over data, rho, phi.
+
+        Arguments:
+            data: numpy array over rho and phi containing the input field
+            rho: numpy array over the rho values in data.
+            phi: numpy array over the phi values in data.
+
+        Returns:
+            fun: function of r, W
+        """
+        self.w = w
+        self.R = R
+
+        self.decompose(data, rho, phi)
+
+        return -self.eta_pl(rho, phi, p=0, l=0)
+
+    def fit_w_R(self, data, rho, phi):
+        """Calculate the w and R that maximises the power in the fundamental
+        Gauss-Laguerre mode.
+
+        Arguments:
+            data: numpy array over rho and phi containing the input field
+            rho: numpy array over the rho values in data.
+            phi: numpy array over the phi values in data.
+
+        Returns:
+            res: Results from scipy.minimize
+        """
+        # Make sure that setting R and w changes w0
+        fix_w0 = self.fix_w0
+        self.fix_w0 = False
+
+        old_w = self.w
+        old_R = self.R
+
+        fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1])
+
+        if self.z > 0:
+            Rbound = (0.0, None)
+            wbound = (self.lm, None)
+
+        res = sp.optimize.minimize(fun, (self.w, self.R), method='L-BFGS-B', bounds=(wbound, Rbound))
+
+        if res.success:
+            self.w = res.x[0]
+            self.R = res.x[1]
+        else:
+            self.w = old_w
+            self.R = old_R
+            print("Optimization failed with message: {:s}".format(res.message))
+
+        self.fix_w0 = fix_w0
+
+        return res
 
     # def farField(self, theta, phi, p=None, l=None):
     #     """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,

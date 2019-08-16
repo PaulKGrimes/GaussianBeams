@@ -13,6 +13,7 @@ import scipy as sp
 from scipy.constants import c
 from scipy.special import jn, jn_zeros
 from scipy.misc import factorial
+from scipy.integrate import simps
 
 
 j = 1j
@@ -177,7 +178,12 @@ def Apl(data, rho, phi, k, w, R, p=0, l=0):
         l: azimuthal mode index - integer.
     Returns:
         complex value of integral."""
-    return (4/(w)**2)*simps(Aint(data, rho, phi, k, w, R, p, l), rho, phi)
+    # Integrate over phi first, using the averaging method to deal with end points
+    # as most horn patterns will have rotational symmetry.
+    # Then integrate over rho, using the "first" method to deal with endpoints, as
+    # most horn patterns will go to zero at high rho, and we will probably have
+    # rho having increasing radius
+    return (4/(w**2))*simps(simps(Aint(data, rho, phi, k, w, R, p, l), phi, axis=0, even="avg"), rho, even="first")
 
 # The following functions allow conversions from pairs of Gaussian beam parameters
 # (w0, w, R, z) to other Gaussian beam parameters

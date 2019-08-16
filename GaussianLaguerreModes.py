@@ -143,6 +143,42 @@ def phi0_from_w0z(w0, z ,lm):
     phi0 = np.arctan((lm*z)/(np.pi*w0**2))
     return phi0
 
+def Aint(data, rho, phi, k, w, R, p=0, l=0):
+    """Return the integrand of overlap integral between the generalized
+    Gaussian-Laguerre mode with beam radius w, radius of phase curvature R,
+    given data over radial distance rho and angles phi.
+
+    Arguments:
+        data: numpy array containing complex field data.
+        rho: numpy array containing rho values of data.
+        phi: numpy array containing phi values of data.
+        k: wavenumber of beam/data - float.
+        w: beam radius of Gaussian mode - float.
+        R: radius of phase curvature of Gaussian mode - float.
+        p: axial mode index - integer.
+        l: azimuthal mode index - integer.
+    Returns:
+        numpy array containing complex values of integrand."""
+    return data*np.conj(Epl(rho, phi, k, w, R, p, l))*np.abs(rho)
+
+def Apl(data, rho, phi, k, w, R, p=0, l=0):
+    """Return the overlap integral between the generalized
+    Gaussian-Laguerre mode with beam radius w, radius of phase curvature R,
+    given data over radial distance rho and angles phi.
+
+    Arguments:
+        data: numpy array containing complex field data.
+        rho: numpy array containing rho values of data.
+        phi: numpy array containing phi values of data.
+        k: wavenumber of beam/data - float.
+        w: beam radius of Gaussian mode - float.
+        R: radius of phase curvature of Gaussian mode - float.
+        p: axial mode index - integer.
+        l: azimuthal mode index - integer.
+    Returns:
+        complex value of integral."""
+    return (4/(w)**2)*simps(Aint(data, rho, phi, k, w, R, p, l), rho, phi)
+
 # The following functions allow conversions from pairs of Gaussian beam parameters
 # (w0, w, R, z) to other Gaussian beam parameters
 

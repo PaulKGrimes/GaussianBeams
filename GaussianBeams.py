@@ -104,7 +104,14 @@ class GaussLaguerreModeBase(object):
             self._w0 = glm.w0_from_wR(newW, R, self.lm)
 
     def resizeModeSet(self, p, l):
-        """Resize the array of mode coefficients"""
+        """Resize the array of mode coefficients to p, 2*l+1 modes. Modes with
+        l>p are undefined, but values are checked by maxL and maxP setters, not
+        here.
+
+        Arguments:
+            p: integer number of axial modes to include.
+            l: integer maximum azimuthal mode number to include. Number of azimuthal
+                modes is 2*l+1."""
         # Don't have to do anything clever with p indices
         self.coeffs.resize(p+1, self._maxL*2+1, refcheck=False)
         self._maxP = p
@@ -180,7 +187,17 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
     def field(self, rho, phi, p=None, l=None):
         """Return the value of the field at rho, phi, z; either for the sum of all modes (p, l) = None,
-        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode."""
+        for a specified axial mode p (sum over azimuthal modes), or for a specific (p, l) mode.
+
+        Arguments:
+            rho: numpy array of the rho values.
+            phi: numpy array of the phi values.
+            p=None: axial mode number - integer.
+            l=None: azimuth mode number - integer.
+        Returns:
+            numpy array over a meshgrid of rho, phi containing complex
+            field values.
+        """
         rhoGrid, phiGrid = np.meshgrid(rho, phi)
         if p!=None and l!=None:
             if l > p:
@@ -206,6 +223,15 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         else:
             # Shouldn't get here
             raise ValueError("GaussLaguerreModeSet.field: must set mode index p if mode index l is set")
+
+    def etapl(self, rho, phi, p=None, l=None):
+        """Return the power in mode p, l or set of l, or set of p and l modes integrated
+        over the rho and phi range.
+
+        Arguments:
+            rho: numpy array of the rho values in data
+            phi: numpy array of the phi values in data"""
+        pass
 
     def decompose(self, data, rho, phi):
         """Calculate the coefficients that best represent the field in data with
@@ -235,7 +261,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
         cal_factor = data[x, y]/self.field(rho[x], phi[y])
 
-        self.coeffs = self.coeffs/cal_factor
+        self.coeffs = self.coeffs*cal_factor
 
         # Return residuals
         return data - self.field(rho, phi)
@@ -250,7 +276,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         Returns:
             complex value of the overlap integral between data and p, l mode.
         """
-        return 1.0
+        return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
 
     # def farField(self, theta, phi, p=None, l=None):
     #     """Return the value of the far field at theta, phi; either for the sum of all modes (p, l) = None,

@@ -16,6 +16,8 @@ from scipy.integrate import simps
 import GaussianLaguerreModes as glm
 import ModifiedGaussianLaguerreModes as modGlm
 
+j = complex(0, 1)
+
 class GaussLaguerreModeBase(object):
     """The base class of the GLM and modified GLM classes.  This base class implements the common parameters and
     handles the storage and manipulation of the mode coefficients"""
@@ -28,7 +30,8 @@ class GaussLaguerreModeBase(object):
 
         self._lm = lm    # The wavenumber of the G-L modes
         self._w0 = w0  # The beam waist radius of the G-L modes
-        self._z = z
+        self._z = z     # Distance along the beam
+        self._phase = 0.0  # An arbitrary phase factor
         self._maxP = maxP # The highest index of the axial modes included in the modeset
                        # axial mode index p is in the range 0 < p < maxP
         self._maxL = maxL # The highest absolute index of the azimuthal modes included in the modeset
@@ -74,6 +77,16 @@ class GaussLaguerreModeBase(object):
     def z(self, newZ):
         """Set the new value of z"""
         self._z = newZ
+
+    @property
+    def phase(self):
+        """Return the arbitrary phase"""
+        return self._phase
+
+    @phase.setter
+    def phase(self, newPhase):
+        """Set an arbitrary phase"""
+        self._phase = newPhase
 
     @property
     def R(self):
@@ -205,7 +218,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             if l > p:
                 raise RuntimeError("azimuthal mode index l cannot exceed axial mode index p")
             # We are after a specific mode
-            return self.coeffs[p,l]* glm.Epl(rhoGrid, phiGrid, self.k, self.w, self.R, p=p, l=l)
+            return self.coeffs[p,l]* glm.Epl(rhoGrid, phiGrid, self.k, self.w, self.R, p=p, l=l)*np.exp(j*self.phase)
         elif p!=None and l==None:
             # We are after the sum of all azimuthal modes in an axial mode
             result = np.zeros_like(rhoGrid, dtype=np.complex)
@@ -258,8 +271,8 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
         # Normalize coefficients to give correct on axis value
         # get coordinates of zero rho and phi
-        x = np.argmin(rho)
-        y = np.argmin(phi)
+        x = np.argmin(np.abs(rho))
+        y = np.argmin(np.abs(phi))
 
         cal_factor = data[x, y]/self.field(rho[x], phi[y])
 
@@ -315,7 +328,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         """
         return np.abs(self.powerIntegral(rho, phi, p, l)/self.powerIntegral(rho, phi))
 
-    def fit_func(self, data, rho, phi, w, R):
+    def fit_func(self, data, rho, phi, w, R, phase):
         """Return a function that represents the negative of the fractional
         power in the p=0,l=0 mode, when fitted over data, rho, phi.
 
@@ -329,6 +342,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         """
         self.w = w
         self.R = R
+        self.phase = phase
 
         self.decompose(data, rho, phi)
 
@@ -352,21 +366,25 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
         old_w = self.w
         old_R = self.R
+        old_phase = self.phase
 
-        fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1])
+        fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1], x[2])
 
         if self.z > 0:
             Rbound = (0.0, None)
             wbound = (self.lm, None)
+            phasebound = (0.0, np.pi*2)
 
-        res = sp.optimize.minimize(fun, (self.w, self.R), method='L-BFGS-B', bounds=(wbound, Rbound))
+        res = sp.optimize.minimize(fun, (self.w, self.R, self.phase), method='L-BFGS-B', bounds=(wbound, Rbound, phasebound))
 
         if res.success:
             self.w = res.x[0]
             self.R = res.x[1]
+            self.phase = res.x[2]
         else:
             self.w = old_w
             self.R = old_R
+            self.phase = old_phase
             print("Optimization failed with message: {:s}".format(res.message))
 
         self.fix_w0 = fix_w0

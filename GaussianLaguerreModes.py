@@ -40,20 +40,19 @@ def Epl(rho, phi, k, w, R, p=0, l=0):
     w0 = w0_from_wR(w, R, lm)
     phi0 = phi0_from_w0z(w0, z, lm)
 
-    phase_exponent = - j*k*z - j*np.pi*rho**2/(lm*R**2) + j*(2*p+np.abs(l)+1)*phi0
-    phi_exponent = j*l*phi
-
-    amp = Epl_amp(rho, phi, k, w, R, p, l)
-
-    return amp*np.exp(phase_exponent)*np.exp(phi_exponent)
+    Eamp = Epl_amp(rho, phi, k, w, R, p, l)
+    Ephase = Epl_phase(rho, phi, k, w, R, p, l)
+    Ephi = Epl_phi(rho, phi, l)
+    return Eamp*Ephase*Ephi
 
 
 def Epl_amp(rho, phi, k, w, R, p=0, l=0):
-    """Calculate the amplitude of normalized Gauss-Laguerre mode at rho, phi, z in
+    """Calculate the amplitude of normalized Gauss-Laguerre mode at rho, phi in
     cylindrical coordinates
 
     Arguments:
         rho: radial distance - numpy array or float.
+        phi: azimuthal angle - numpy array or float.
         k:   wavenumber of beam - float.
         w:   beam radius - float.
         R:   radius of phase curvature - float.
@@ -75,6 +74,47 @@ def Epl_amp(rho, phi, k, w, R, p=0, l=0):
     nrm = norm(w, p, l)
 
     return nrm*Spl*np.exp(amp_exponent)
+
+def Epl_phase(rho, phi, k, w, R, p=0, l=0):
+    """Calculate the radial dependent phase of normalized Gauss-Laguerre mode at rho, phi in
+    cylindrical coordinates
+
+    Arguments:
+        rho: radial distance - numpy array or float.
+        phi: azimuthal angle - numpy array or float.
+        k:   wavenumber of beam - float.
+        w:   beam radius - float.
+        R:   radius of phase curvature - float.
+        p:   axial mode index - integer.
+        l:   azimuthal mode index - integer
+    Returns:
+        phase factor of the field - numpy array of float values"""
+    rho, phi = make_grids(rho, phi)
+
+    lm = 2*np.pi/k
+    z = z_from_wR(w, R, lm)
+    w0 = w0_from_wR(w, R, lm)
+    phi0 = phi0_from_w0z(w0, z, lm)
+
+    phase_exponent = - j*k*z - j*k*rho**2/(2*R) + j*(2*p+np.abs(l)+1)*phi0
+
+    return np.exp(phase_exponent)
+
+def Epl_phi(rho, phi, l=0):
+    """Calculate the azimuthal dependent phase of normalized Gauss-Laguerre mode at rho, phi in
+    cylindrical coordinates
+
+    Arguments:
+        rho: radial distance - numpy array or float.
+        phi: azimuthal angle - numpy array or float.
+        l:   azimuthal mode index - integer
+    Returns:
+        phase factor of the field - numpy array of float values"""
+    rho, phi = make_grids(rho, phi)
+
+    phi_exponent = -j*l*phi
+
+    return np.exp(phi_exponent)
 
 def make_grids(rho, phi):
     """Convert rho and phi into meshgrids."""
@@ -99,7 +139,7 @@ def norm(w, p=0, l=0):
     Returns:
         normalization constant - float.
         """
-    return np.sqrt(2/(np.pi) * factorial(p)/factorial(p - np.abs(l))) / w
+    return np.sqrt(2/(np.pi) * factorial(p)/factorial(p + np.abs(l))) / w
 
 
 def Lpl(x, p=0, l=0):
@@ -114,6 +154,7 @@ def Lpl(x, p=0, l=0):
         float or numpy array (according to type of rho) containing the function value."""
     return sp.special.eval_genlaguerre(p, np.abs(l), x)
 
+
 def Sr(rho, w, p=0, l=0):
     """Calculate the radial function of the p, l, G-L mode.
 
@@ -126,7 +167,8 @@ def Sr(rho, w, p=0, l=0):
     Returns:
         float or numpy array (according to type of rho) containing the radial
         distribution."""
-    return (np.sqrt(2*rho)/w)**np.abs(l) * Lpl(2*rho**2 / w**2, p, l)
+    return (np.sqrt(2)*rho/w)**np.abs(l) * Lpl(2*rho**2 / w**2, p, l)
+
 
 def phi0_from_w0z(w0, z ,lm):
     """Calculate the beam phase slippage from beam waist radius, axial distance,
@@ -183,7 +225,7 @@ def Apl(data, rho, phi, k, w, R, p=0, l=0):
     # Then integrate over rho, using the "first" method to deal with endpoints, as
     # most horn patterns will go to zero at high rho, and we will probably have
     # rho having increasing radius
-    return (4/(w**2))*simps(simps(Aint(data, rho, phi, k, w, R, p, l), phi, axis=0, even="avg"), rho, even="first")
+    return simps(simps(Aint(data, rho, phi, k, w, R, p, l), phi, axis=0, even="avg"), rho, even="first")
 
 # The following functions allow conversions from pairs of Gaussian beam parameters
 # (w0, w, R, z) to other Gaussian beam parameters

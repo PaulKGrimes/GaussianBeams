@@ -239,6 +239,14 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             # Shouldn't get here
             raise ValueError("GaussLaguerreModeSet.field: must set mode index p if mode index l is set")
 
+    def etapl(self, rho, phi, p=None, l=None):
+        """Return the power in mode p, l or set of l, or set of p and l modes integrated
+        over the rho and phi range.
+
+        Arguments:
+            rho: numpy array of the rho values in data
+            phi: numpy array of the phi values in data"""
+        pass
 
     def decompose(self, data, rho, phi):
         """Calculate the coefficients that best represent the field in data with
@@ -273,43 +281,16 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         # Return residuals
         return data - self.field(rho, phi)
 
-    def overlapIntegral(self, data, rho, phi, p=None, l=None, padData=None):
+    def overlapIntegral(self, data, rho, phi, p=0, l=0):
         """Calculate the overlap integral between data and the p, l mode.
-        If p, l not given, calculate overlap integral for full mode set.
-
-        Can pad data with zeros to extend beyond given dataset. This is useful
-        when data is given over the aperture of a horn or stop, and we want to
-        constrain the fitted modeset to be zero outside the aperture.
 
         Arguments:
             data: numpy array over rho and phi containing the input field
             rho: numpy array of the rho values in data
             phi: numpy array of the phi values in data
-            p=None: axial mode number to include in overlap integral
-            l=None: azimuthal mode number to include in overlap integral
-            padData=None: pad data with zeros out to padData x max(rho), assuming
-                            rho is uniform and ordered 0 -> max
         Returns:
             complex value of the overlap integral between data and p, l mode.
         """
-        if padData != None:
-            maxRho = rho[-1]*padData
-            if rho[0] != 0.0:
-                minRho = rho[0]*padData
-            lenRho = len(rho)
-            #pad rho
-            rhoSpacing = (rho[-1]-rho[0])/(lenRho-1)
-            rho = np.arange(minRho, maxRho, rhoSpacing)
-            lenNewRho = len(rho)
-            #resize data array
-            if rho[0] != 0.0:
-                # pad data on both sides
-                newData = np.resize(data, lenNewRho, axis=0)
-            else:
-                # pad data on one side
-                newData = np.resize(data, lenNewRho, axis=0)
-            data = newData
-
         return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
 
     def powerIntegral(self, rho, phi, p=None, l=None):

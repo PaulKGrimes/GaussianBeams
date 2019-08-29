@@ -266,7 +266,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             if maxL > p:
                 maxL = p
             for l in range(-maxL, maxL+1):
-                self.coeffs[p, l] = self.overlapIntegral(data, rho, phi, p, l)
+                self.coeffs[p, l] = self.modeOverlapIntegral(data, rho, phi, p, l)
 
         # Normalize coefficients to give correct on axis value
         # get coordinates of zero rho and phi
@@ -280,9 +280,27 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         # Return residuals
         return data - self.field(rho, phi)
 
-    def overlapIntegral(self, data, rho, phi, p=None, l=None, padData=None):
-        """Calculate the overlap integral between data and the p, l mode.
-        If p, l not given, calculate overlap integral for full mode set.
+    def modeOverlapIntegral(self, data, rho, phi, p=0, l=0):
+        """Calculate the overlap integral between data and the normalized p, l
+        mode.
+
+        Arguments:
+            data: numpy array over rho and phi containing the input field
+            rho: numpy array of the rho values in data
+            phi: numpy array of the phi values in data
+            p=0: axial mode number to include in overlap integral
+            l=0: azimuthal mode number to include in overlap integral
+        Returns:
+            complex value of the overlap integral between data and p, l mode.
+        """
+        return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
+
+
+    def overlapIntegral(self, data, rho, phi, p=None, l=None):
+        """Calculate the overlap integral between data and modeset, either for
+        the sum of all modes (p, l) = None, for a specified axial mode p (sum
+        over azimuthal modes), or for a specific (p, l) mode.  Coefficients will
+        be included.
 
         Can pad data with zeros to extend beyond given dataset. This is useful
         when data is given over the aperture of a horn or stop, and we want to
@@ -294,35 +312,25 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             phi: numpy array of the phi values in data
             p=None: axial mode number to include in overlap integral
             l=None: azimuthal mode number to include in overlap integral
-            padData=None: pad data with zeros out to padData x max(rho), assuming
-                            rho is uniform and ordered 0 -> max
         Returns:
             complex value of the overlap integral between data and p, l mode.
         """
-        if padData != None:
-            maxRho = rho[-1]*padData
-            if rho[0] != 0.0:
-                minRho = rho[0]*padData
-            lenRho = len(rho)
-            #pad rho
-            rhoSpacing = (rho[-1]-rho[0])/(lenRho-1)
-            rho = np.arange(minRho, maxRho, rhoSpacing)
-            lenNewRho = len(rho)
-            #resize data array
-            if rho[0] != 0.0:
-                # pad data on both sides
-                newData = np.resize(data, lenNewRho, axis=0)
-            else:
-                # pad data on one side
-                newData = np.resize(data, lenNewRho, axis=0)
-            data = newData
+        field = self.field(rho, phi, p, l)
 
-        return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
+        integrand = data*np.conj(field)*np.abs(rho)
 
-    def powerIntegral(self, rho, phi, p=None, l=None):
+        overlap = simps(simps(integrand, phi, axis=0, even="avg"), rho, even="first")
+
+        return overlap
+
+
+    def powerIntegral(self, rho, phi, p=None, l=None, padRho=None):
         """Calculate the integrated power in the field; either for the sum of
         all modes (p, l) = None, for a specified axial mode p (sum over
         azimuthal modes), or for a specific (p, l) mode.
+
+        Can pad the rho vector to allow calculation beyond the rho vector
+        supplied, in order to make sure that all power is included.
 
         Arguments:
             rho: numpy array of the rho values.
@@ -332,6 +340,10 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         Returns:
             Power in the field - float.
         """
+        if padRho:
+            # Assume that rho is an ordered and evenly spaced set
+            rho = np.linspace(rho[0]*padRho, rho[-1]*padRho, len(rho)*padRho)
+
         field = self.field(rho, phi, p, l)
         integrand = field*np.conj(field)*np.abs(rho)
 

@@ -96,7 +96,7 @@ def Epl_phase(rho, phi, k, w, R, p=0, l=0):
     w0 = w0_from_wR(w, R, lm)
     phi0 = phi0_from_w0z(w0, z, lm)
 
-    phase_exponent = - j*k*z - j*k*rho**2/(2*R) + j*(2*p+np.abs(l)+1)*phi0
+    phase_exponent = - j*k*z - j*k*rho**2/(2*R) - j*(2*p+np.abs(l)+1)*phi0
 
     return np.exp(phase_exponent)
 

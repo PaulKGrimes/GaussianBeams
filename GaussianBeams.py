@@ -118,6 +118,13 @@ class GaussLaguerreModeBase(object):
             self._z = glm.z_from_wR(newW, R, self.lm)
             self._w0 = glm.w0_from_wR(newW, R, self.lm)
 
+    @property
+    def phi0(self):
+        """Return the beam phase factor.
+
+        Leave this as read only, as there's no real reason to set it directly"""
+        return glm.phi0_from_w0z(self.w0, self.z, self.lm)
+
     def resizeModeSet(self, p, l):
         """Resize the array of mode coefficients to p, 2*l+1 modes. Modes with
         l>p are undefined, but values are checked by maxL and maxP setters, not
@@ -239,14 +246,6 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             # Shouldn't get here
             raise ValueError("GaussLaguerreModeSet.field: must set mode index p if mode index l is set")
 
-    def etapl(self, rho, phi, p=None, l=None):
-        """Return the power in mode p, l or set of l, or set of p and l modes integrated
-        over the rho and phi range.
-
-        Arguments:
-            rho: numpy array of the rho values in data
-            phi: numpy array of the phi values in data"""
-        pass
 
     def decompose(self, data, rho, phi):
         """Calculate the coefficients that best represent the field in data with
@@ -267,30 +266,57 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
             if maxL > p:
                 maxL = p
             for l in range(-maxL, maxL+1):
-                self.coeffs[p, l] = 2/(np.pi*self.w**2)*self.overlapIntegral(data, rho, phi, p, l)
+                self.coeffs[p, l] = self.overlapIntegral(data, rho, phi, p, l)
 
         # Normalize coefficients to give correct on axis value
         # get coordinates of zero rho and phi
-        x = np.argmin(np.abs(rho))
-        y = np.argmin(np.abs(phi))
+        #x = np.argmin(np.abs(rho))
+        #y = np.argmin(np.abs(phi))
 
-        cal_factor = data[x, y]/self.field(rho[x], phi[y])
+        #cal_factor = data[x, y]/self.field(rho[x], phi[y])
 
-        self.coeffs = self.coeffs*cal_factor
+        #self.coeffs = self.coeffs*cal_factor
 
         # Return residuals
         return data - self.field(rho, phi)
 
-    def overlapIntegral(self, data, rho, phi, p=0, l=0):
+    def overlapIntegral(self, data, rho, phi, p=None, l=None, padData=None):
         """Calculate the overlap integral between data and the p, l mode.
+        If p, l not given, calculate overlap integral for full mode set.
+
+        Can pad data with zeros to extend beyond given dataset. This is useful
+        when data is given over the aperture of a horn or stop, and we want to
+        constrain the fitted modeset to be zero outside the aperture.
 
         Arguments:
             data: numpy array over rho and phi containing the input field
             rho: numpy array of the rho values in data
             phi: numpy array of the phi values in data
+            p=None: axial mode number to include in overlap integral
+            l=None: azimuthal mode number to include in overlap integral
+            padData=None: pad data with zeros out to padData x max(rho), assuming
+                            rho is uniform and ordered 0 -> max
         Returns:
             complex value of the overlap integral between data and p, l mode.
         """
+        if padData != None:
+            maxRho = rho[-1]*padData
+            if rho[0] != 0.0:
+                minRho = rho[0]*padData
+            lenRho = len(rho)
+            #pad rho
+            rhoSpacing = (rho[-1]-rho[0])/(lenRho-1)
+            rho = np.arange(minRho, maxRho, rhoSpacing)
+            lenNewRho = len(rho)
+            #resize data array
+            if rho[0] != 0.0:
+                # pad data on both sides
+                newData = np.resize(data, lenNewRho, axis=0)
+            else:
+                # pad data on one side
+                newData = np.resize(data, lenNewRho, axis=0)
+            data = newData
+
         return glm.Apl(data, rho, phi, self.k, self.w, self.R, p, l)
 
     def powerIntegral(self, rho, phi, p=None, l=None):
@@ -328,7 +354,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         """
         return np.abs(self.powerIntegral(rho, phi, p, l)/self.powerIntegral(rho, phi))
 
-    def fit_func(self, data, rho, phi, w, R, phase):
+    def fit_func(self, data, rho, phi, w, R):
         """Return a function that represents the negative of the fractional
         power in the p=0,l=0 mode, when fitted over data, rho, phi.
 
@@ -342,7 +368,6 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         """
         self.w = w
         self.R = R
-        self.phase = phase
 
         self.decompose(data, rho, phi)
 
@@ -366,25 +391,21 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
 
         old_w = self.w
         old_R = self.R
-        old_phase = self.phase
 
-        fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1], x[2])
+        fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1])
 
         if self.z > 0:
             Rbound = (0.0, None)
             wbound = (self.lm, None)
-            phasebound = (0.0, np.pi*2)
 
-        res = sp.optimize.minimize(fun, (self.w, self.R, self.phase), method='L-BFGS-B', bounds=(wbound, Rbound, phasebound))
+        res = sp.optimize.minimize(fun, (self.w, self.R), method='L-BFGS-B', bounds=(wbound, Rbound))
 
         if res.success:
             self.w = res.x[0]
             self.R = res.x[1]
-            self.phase = res.x[2]
         else:
             self.w = old_w
             self.R = old_R
-            self.phase = old_phase
             print("Optimization failed with message: {:s}".format(res.message))
 
         self.fix_w0 = fix_w0

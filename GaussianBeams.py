@@ -37,7 +37,7 @@ class GaussLaguerreModeBase(object):
         self._maxL = maxL # The highest absolute index of the azimuthal modes included in the modeset
                        # azimuthal mode index l is in the range -maxL < l < maxL
 
-        self.fix_w0 = True # Control whether updating R, z, w updates w0 or z
+        self.fix_w0 = False # Control whether updating R, z, w updates w0 or z
 
     @property
     def k(self):
@@ -407,8 +407,12 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         fun = lambda x : self.fit_func(data, rho, phi, x[0], x[1])
 
         if self.z > 0:
-            Rbound = (0.0, None)
-            wbound = (self.lm, None)
+            Rbound = (self.lm, None)
+        else:
+            Rbound = (None, -self.lm)
+
+        wbound = (self.lm, rho[-1])
+
 
         res = sp.optimize.minimize(fun, (self.w, self.R), method='L-BFGS-B', bounds=(wbound, Rbound))
 
@@ -418,7 +422,7 @@ class GaussLaguerreModeSet(GaussLaguerreModeBase):
         else:
             self.w = old_w
             self.R = old_R
-            print("Optimization failed with message: {:s}".format(res.message))
+            print("Optimization failed with message: ", res.message)
 
         self.fix_w0 = fix_w0
 

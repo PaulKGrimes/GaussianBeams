@@ -11,8 +11,7 @@ import numpy as np
 import scipy as sp
 
 from scipy.constants import c
-from scipy.special import jn, jn_zeros
-from scipy.misc import factorial
+from scipy.special import jn, jn_zeros, factorial
 from scipy.integrate import simps
 
 
